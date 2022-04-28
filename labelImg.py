@@ -56,6 +56,7 @@ from libs.create_ml_io import CreateMLReader
 from libs.create_ml_io import JSON_EXT
 from libs.ustr import ustr
 from libs.hashableQListWidgetItem import HashableQListWidgetItem
+from libs.pick_io import PickReader
 
 __appname__ = 'labelImg'
 
@@ -182,7 +183,7 @@ class MainWindow(QMainWindow, WindowMixin):
         # Create Text zone to display correspondant text retrieved with ocr for a bbox
         self.ocr_text_edit = QTextEdit()
         self.ocr_text_edit.setFontPointSize(10)
-        self.ocr_text_edit.focusOutEvent = self.ocr_focus_handler
+        self.ocr_text_edit.focusOutEvent = self.ocr_focus_out_handler
         ocr_text_edit_layout = QVBoxLayout()
         ocr_text_edit_layout.setContentsMargins(0, 0, 0, 0)
         ocr_text_edit_layout.addWidget(self.ocr_text_edit)
@@ -258,6 +259,8 @@ class MainWindow(QMainWindow, WindowMixin):
                 return '&YOLO', 'format_yolo'
             elif format == LabelFileFormat.CREATE_ML:
                 return '&CreateML', 'format_createml'
+            elif format == LabelFileFormat.PICK:
+                return '&Pick', 'format_pick'
 
         save_format = action(get_format_meta(self.label_file_format)[0],
                              self.change_format, 'Ctrl+Y',
@@ -521,8 +524,8 @@ class MainWindow(QMainWindow, WindowMixin):
         if self.file_path and os.path.isdir(self.file_path):
             self.open_dir_dialog(dir_path=self.file_path, silent=True)
 
-    def ocr_focus_handler(self,event) : 
-        if self.last_shape_selected and self.last_shape_selected in self.shapes_to_items: 
+    def ocr_focus_out_handler(self,event):
+        if self.last_shape_selected and self.last_shape_selected in self.shapes_to_items:
             self.shapes_to_items[self.last_shape_selected][1] = self.ocr_text_edit.toPlainText()
 
     def keyReleaseEvent(self, event):
@@ -553,6 +556,12 @@ class MainWindow(QMainWindow, WindowMixin):
             self.actions.save_format.setIcon(new_icon("format_createml"))
             self.label_file_format = LabelFileFormat.CREATE_ML
             LabelFile.suffix = JSON_EXT
+        
+        elif save_format == FORMAT_PICK:
+            self.actions.save_format.setText(FORMAT_PICK)
+            self.actions.save_format.setIcon(new_icon("format_pick"))
+            self.label_file_format = LabelFileFormat.PICK
+            LabelFile.suffix = TXT_EXT
 
     def change_format(self):
         if self.label_file_format == LabelFileFormat.PASCAL_VOC:
@@ -560,6 +569,8 @@ class MainWindow(QMainWindow, WindowMixin):
         elif self.label_file_format == LabelFileFormat.YOLO:
             self.set_format(FORMAT_CREATEML)
         elif self.label_file_format == LabelFileFormat.CREATE_ML:
+            self.set_format(FORMAT_PICK)
+        elif self.label_file_format == LabelFileFormat.PICK:
             self.set_format(FORMAT_PASCALVOC)
         else:
             raise ValueError('Unknown label file format.')
@@ -908,6 +919,11 @@ class MainWindow(QMainWindow, WindowMixin):
                     annotation_file_path += JSON_EXT
                 self.label_file.save_create_ml_format(annotation_file_path, shapes, self.file_path, self.image_data,
                                                       self.label_hist, self.line_color.getRgb(), self.fill_color.getRgb())
+            elif self.label_file_format == LabelFileFormat.PICK:
+                if annotation_file_path[-4:].lower() != ".txt":
+                    annotation_file_path += TXT_EXT
+                self.label_file.save_pick_format(annotation_file_path, shapes, self.file_path, self.image_data,
+                                                      self.label_hist, self.line_color.getRgb(), self.fill_color.getRgb())
             else:
                 self.label_file.save(annotation_file_path, shapes, self.file_path, self.image_data,
                                      self.line_color.getRgb(), self.fill_color.getRgb())
@@ -961,6 +977,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         position MUST be in global coordinates.
         """
+        
         if not self.use_default_label_checkbox.isChecked():
             if len(self.label_hist) > 0:
                 self.label_dialog = LabelDialog(
@@ -981,6 +998,7 @@ class MainWindow(QMainWindow, WindowMixin):
             self.prev_label_text = text
             generate_color = generate_color_by_text(text)
             shape = self.canvas.set_last_label(text, generate_color, generate_color)
+            self.last_shape_selected = shape
             self.add_label(shape)
             if self.beginner():  # Switch to edit mode.
                 self.canvas.set_editing(True)
@@ -1191,6 +1209,8 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.load_yolo_txt_by_filename(txt_path)
             elif os.path.isfile(json_path):
                 self.load_create_ml_json_by_filename(json_path, file_path)
+            elif os.path.isfile(txt_path):
+                self.load_pick_txt_by_filename(json_path, file_path)
 
         else:
             xml_path = os.path.splitext(file_path)[0] + XML_EXT
@@ -1615,6 +1635,19 @@ class MainWindow(QMainWindow, WindowMixin):
         print(shapes)
         self.load_labels(shapes)
         self.canvas.verified = t_yolo_parse_reader.verified
+    
+    def load_pick_txt_by_filename(self, txt_path):
+        if self.file_path is None:
+            return
+        if os.path.isfile(txt_path) is False:
+            return
+
+        self.set_format(FORMAT_PICK)
+        t_pick_parse_reader = PickReader(txt_path, self.image)
+        shapes = t_pick_parse_reader.get_shapes()
+        print(shapes)
+        self.load_labels(shapes)
+        self.canvas.verified = t_pick_parse_reader.verified
 
     def load_create_ml_json_by_filename(self, json_path, file_path):
         if self.file_path is None:
