@@ -9,8 +9,10 @@ import os
 import platform
 import shutil
 import sys
+import io
 import webbrowser as wb
 from functools import partial
+import fitz
 import pytesseract
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__),'tesseract.exe')#tesseract_path
 os.environ['TESSDATA_PREFIX'] = os.path.join(os.path.dirname(__file__),'tessdata')
@@ -180,7 +182,7 @@ class MainWindow(QMainWindow, WindowMixin):
         # Create Text zone to display correspondant text retrieved with ocr for a bbox
         self.ocr_text_edit = QTextEdit()
         self.ocr_text_edit.setFontPointSize(10)
-        #self.ocr_text_edit.focusOutEvent = self.ocr_focus_handler
+        self.ocr_text_edit.focusOutEvent = self.ocr_focus_handler
         ocr_text_edit_layout = QVBoxLayout()
         ocr_text_edit_layout.setContentsMargins(0, 0, 0, 0)
         ocr_text_edit_layout.addWidget(self.ocr_text_edit)
@@ -520,15 +522,8 @@ class MainWindow(QMainWindow, WindowMixin):
             self.open_dir_dialog(dir_path=self.file_path, silent=True)
 
     def ocr_focus_handler(self,event) : 
-        print('bonjour dans le chat')
-        print(self.last_shape_selected)
-        #print(self.shapes_to_items[self.canvas.shapes[-1]])
-        """
-        shape = self.canvas.selected_shape
-        print(shape, ' shape ocr')
-        print(' self.shapes to item ocr', self.shapes_to_items[shape])
-        print(self.shapes_to_items[shape])
-        """
+        if self.last_shape_selected and self.last_shape_selected in self.shapes_to_items: 
+            self.shapes_to_items[self.last_shape_selected][1] = self.ocr_text_edit.toPlainText()
 
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_Control:
@@ -791,8 +786,8 @@ class MainWindow(QMainWindow, WindowMixin):
             self._no_selection_slot = False
         else:
             shape = self.canvas.selected_shape
-            self.last_shape_selected = deepcopy(shape)
             if shape:
+                self.last_shape_selected = deepcopy(shape)
                 self.shapes_to_items[shape][0].setSelected(True) # 0 = item
                 self.ocr_text_edit.setText(self.shapes_to_items[shape][1]) # Format shapes_to_items[shape] = (items, text)
             else:
@@ -817,27 +812,14 @@ class MainWindow(QMainWindow, WindowMixin):
         grayscale = ImageOps.grayscale(crop)
         
         medium_crop = grayscale.resize((int(crop.size[0]*1.1),int(crop.size[1]*1.1)))
-        medium_crop.save('medium_crop.jpg')
-        erode_medium = medium_crop.filter(ImageFilter.MinFilter(3))
-        erode_medium.save('erode_medium.jpg')
         ocr_text = pytesseract.image_to_string(medium_crop,lang='fra')
-        ocr_text_erode = pytesseract.image_to_string(erode_medium,lang='fra')
-        print('ocr_text : ', ocr_text)
-        print('ocr_text : ', ocr_text_erode)
         taller_crop = grayscale.resize((int(crop.size[0]*1.6),int(crop.size[1]*1.6)))
-        erode_taller = taller_crop.filter(ImageFilter.MinFilter(3))
-        taller_crop.save('taller_crop.jpg')
-        erode_taller.save('erode_taller.jpg')
         taller_ocr_text = pytesseract.image_to_string(taller_crop,lang='fra')
-        taller_ocr_text = pytesseract.image_to_string(taller_crop,lang='fra')
-
-        print('taller_ocr_text : ', taller_ocr_text)
-        print('ocr_text : ', ocr_text_erode)
 
         if len(ocr_text) > len(taller_ocr_text) : 
-            self.shapes_to_items[shape] = (item, ocr_text)
+            self.shapes_to_items[shape] = [item, ocr_text]
         else:
-            self.shapes_to_items[shape] = (item, taller_ocr_text)
+            self.shapes_to_items[shape] = [item, taller_ocr_text]
         self.label_list.addItem(item)
         self.ocr_text_edit.setText(self.shapes_to_items[shape][1])
 
@@ -1006,6 +988,10 @@ class MainWindow(QMainWindow, WindowMixin):
             else:
                 self.actions.editMode.setEnabled(True)
             self.set_dirty()
+            
+            if shape:
+                self.last_shape_selected = deepcopy(shape)
+                self.shapes_to_items[shape][0].setSelected(True) # 0 = item
 
             if text not in self.label_hist:
                 self.label_hist.append(text)
@@ -1114,7 +1100,7 @@ class MainWindow(QMainWindow, WindowMixin):
         unicode_file_path = os.path.abspath(unicode_file_path)
         # Tzutalin 20160906 : Add file list and dock to move faster
         # Highlight the file item
-        self.pillow_image = Image.open(file_path)
+        
         if unicode_file_path and os.path.exists(unicode_file_path):
             if LabelFile.is_label_file(unicode_file_path):
                 try:
@@ -1133,7 +1119,18 @@ class MainWindow(QMainWindow, WindowMixin):
             else:
                 # Load image:
                 # read data first and store for saving into label file.
-                self.image_data = read(unicode_file_path, None)
+                if os.path.splitext(unicode_file_path)[1] == '.pdf' : 
+                    pdf_file = fitz.open(unicode_file_path)
+                    if len(pdf_file) > 1 : 
+                        self.error_message(u'Error opening file',
+                                   u"<p><i>%s</i> has multiple page." % unicode_file_path)
+                        self.status("Error reading %s" % unicode_file_path)
+                        return False
+                    self.image_data = pdf_file[0].get_pixmap().pil_tobytes(format="JPEG", optimize=True)
+                    self.pillow_image = Image.open(io.BytesIO(self.image_data))
+                else:
+                    self.image_data = read(unicode_file_path, None)
+                    self.pillow_image = Image.open(file_path)
                 self.label_file = None
                 self.canvas.verified = False
 
@@ -1277,13 +1274,18 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def scan_all_images(self, folder_path):
         extensions = ['.%s' % fmt.data().decode("ascii").lower() for fmt in QImageReader.supportedImageFormats()]
+        extensions += ['.pdf']
         images = []
 
-        for root, dirs, files in os.walk(folder_path):
+        for root, _, files in os.walk(folder_path):
             for file in files:
                 if file.lower().endswith(tuple(extensions)):
                     relative_path = os.path.join(root, file)
                     path = ustr(os.path.abspath(relative_path))
+                    if os.path.splitext(path)[1] == '.pdf' : 
+                        pdf_file = fitz.open(path)
+                        if len(pdf_file) > 1 :
+                            continue
                     images.append(path)
         natural_sort(images, key=lambda x: x.lower())
         return images
@@ -1429,7 +1431,7 @@ class MainWindow(QMainWindow, WindowMixin):
             return
         path = os.path.dirname(ustr(self.file_path)) if self.file_path else '.'
         formats = ['*.%s' % fmt.data().decode("ascii").lower() for fmt in QImageReader.supportedImageFormats()]
-        filters = "Image & Label files (%s)" % ' '.join(formats + ['*%s' % LabelFile.suffix])
+        filters = "Image & Label files (%s)" % ' '.join(formats + ['*%s' % LabelFile.suffix, '*.pdf'])
         filename,_ = QFileDialog.getOpenFileName(self, '%s - Choose Image or Label file' % __appname__, path, filters)
         if filename:
             if isinstance(filename, (tuple, list)):
