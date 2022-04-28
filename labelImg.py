@@ -5,21 +5,17 @@ i = 0
 from copy import deepcopy
 import argparse
 import codecs
-import os.path
 import os
 import platform
 import shutil
 import sys
 import webbrowser as wb
 from functools import partial
-import subprocess 
 import pytesseract
-#tesseract_path = subprocess.run(['where', 'tesseract'], capture_output=True, text=True).stdout
-#print(tesseract_path)
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__),'tesseract.exe')#tesseract_path
 os.environ['TESSDATA_PREFIX'] = os.path.join(os.path.dirname(__file__),'tessdata')
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageFilter
 
 try:
     from PyQt5.QtGui import *
@@ -183,6 +179,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         # Create Text zone to display correspondant text retrieved with ocr for a bbox
         self.ocr_text_edit = QTextEdit()
+        self.ocr_text_edit.setFontPointSize(10)
         #self.ocr_text_edit.focusOutEvent = self.ocr_focus_handler
         ocr_text_edit_layout = QVBoxLayout()
         ocr_text_edit_layout.setContentsMargins(0, 0, 0, 0)
@@ -820,9 +817,23 @@ class MainWindow(QMainWindow, WindowMixin):
         grayscale = ImageOps.grayscale(crop)
         
         medium_crop = grayscale.resize((int(crop.size[0]*1.1),int(crop.size[1]*1.1)))
+        medium_crop.save('medium_crop.jpg')
+        erode_medium = medium_crop.filter(ImageFilter.MinFilter(3))
+        erode_medium.save('erode_medium.jpg')
         ocr_text = pytesseract.image_to_string(medium_crop,lang='fra')
+        ocr_text_erode = pytesseract.image_to_string(erode_medium,lang='fra')
+        print('ocr_text : ', ocr_text)
+        print('ocr_text : ', ocr_text_erode)
         taller_crop = grayscale.resize((int(crop.size[0]*1.6),int(crop.size[1]*1.6)))
+        erode_taller = taller_crop.filter(ImageFilter.MinFilter(3))
+        taller_crop.save('taller_crop.jpg')
+        erode_taller.save('erode_taller.jpg')
         taller_ocr_text = pytesseract.image_to_string(taller_crop,lang='fra')
+        taller_ocr_text = pytesseract.image_to_string(taller_crop,lang='fra')
+
+        print('taller_ocr_text : ', taller_ocr_text)
+        print('ocr_text : ', ocr_text_erode)
+
         if len(ocr_text) > len(taller_ocr_text) : 
             self.shapes_to_items[shape] = (item, ocr_text)
         else:
