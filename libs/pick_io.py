@@ -50,11 +50,10 @@ class PickWriter:
     
     # JSON list of the entites ({"entity_name": 'entity_value, ...})
     def __write_entities(self):
-        content = "{"
+        content = {}
         for shape in self.shapes:
-            content += "'" + shape['label']+"':'"+shape['transcript']+"',"
-        content += "}"
-        self.__write(path.join(self.entities_path,self.file_name),TXT_EXT,content)
+            content.update({shape['label']:shape['transcript']})
+        self.__write(path.join(self.entities_path,self.file_name),TXT_EXT,str(content))
     
     # JPG image of the object
     def __save_image(self):
