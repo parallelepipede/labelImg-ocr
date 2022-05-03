@@ -1461,19 +1461,20 @@ class MainWindow(QMainWindow, WindowMixin):
             self.load_file(filename)
 
     def save_file(self, _value=False):
-        if self.default_save_dir is not None and len(ustr(self.default_save_dir)):
-            if self.file_path:
+        if self.file_path:
+            if self.default_save_dir is not None and len(ustr(self.default_save_dir)):
+                if self.file_path:
+                    image_file_name = os.path.basename(self.file_path)
+                    saved_file_name = os.path.splitext(image_file_name)[0]
+                    saved_path = os.path.join(ustr(self.default_save_dir), saved_file_name)
+                    self._save_file(saved_path)
+            else:
+                image_file_dir = os.path.dirname(self.file_path)
                 image_file_name = os.path.basename(self.file_path)
                 saved_file_name = os.path.splitext(image_file_name)[0]
-                saved_path = os.path.join(ustr(self.default_save_dir), saved_file_name)
-                self._save_file(saved_path)
-        else:
-            image_file_dir = os.path.dirname(self.file_path)
-            image_file_name = os.path.basename(self.file_path)
-            saved_file_name = os.path.splitext(image_file_name)[0]
-            saved_path = os.path.join(image_file_dir, saved_file_name)
-            self._save_file(saved_path if self.label_file
-                            else self.save_file_dialog(remove_ext=False))
+                saved_path = os.path.join(image_file_dir, saved_file_name)
+                self._save_file(saved_path if self.label_file
+                                else self.save_file_dialog(remove_ext=False))
 
     def save_file_as(self, _value=False):
         assert not self.image.isNull(), "cannot save empty image"
