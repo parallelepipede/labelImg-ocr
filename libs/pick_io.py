@@ -1,127 +1,90 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 from xml.etree import ElementTree
-from xml.etree.ElementTree import Element, SubElement
 from lxml import etree
 import codecs
 from libs.constants import DEFAULT_ENCODING
-from libs.ustr import ustr
-
+from os import mkdir, path
 
 TXT_EXT = '.txt'
+CSV_EXT = '.csv'
+JPG_EXT = '.jpg'
+TSV_EXT = '.tsv'
 ENCODE_METHOD = DEFAULT_ENCODING
 
 class PickWriter:
 
-    def __init__(self, folder_name, filename, img_size, database_src='Unknown', local_img_path=None):
+    def __init__(self, folder_name, file_name, shapes, img_data, entities_list, database_src='Unknown', local_img_path=None):
         self.folder_name = folder_name
-        self.filename = filename
+        self.file_name = file_name
         self.database_src = database_src
-        self.img_size = img_size
-        self.box_list = []
+        self.img_data = img_data
+        self.shapes = shapes
         self.local_img_path = local_img_path
+        self.entities_list = entities_list
         self.verified = False
+        self.boxes_and_transcripts_path = path.join(self.folder_name, "boxes_and_transcripts")
+        self.entities_path = path.join(self.folder_name, "entities")
+        self.images_path = path.join(self.folder_name, "images")
 
-    def prettify(self, elem):
-        """
-            Return a pretty-printed XML string for the Element.
-        """
-        rough_string = ElementTree.tostring(elem, 'utf8')
-        root = etree.fromstring(rough_string)
-        return etree.tostring(root, pretty_print=True, encoding=ENCODE_METHOD).replace("  ".encode(), "\t".encode())
-        # minidom does not support UTF-8
-        # reparsed = minidom.parseString(rough_string)
-        # return reparsed.toprettyxml(indent="\t", encoding=ENCODE_METHOD)
-
-    def gen_xml(self):
-        """
-            Return XML root
-        """
-        # Check conditions
-        if self.filename is None or \
-                self.folder_name is None or \
-                self.img_size is None:
-            return None
-
-        top = Element('annotation')
-        if self.verified:
-            top.set('verified', 'yes')
-
-        folder = SubElement(top, 'folder')
-        folder.text = self.folder_name
-
-        filename = SubElement(top, 'filename')
-        filename.text = self.filename
-
-        if self.local_img_path is not None:
-            local_img_path = SubElement(top, 'path')
-            local_img_path.text = self.local_img_path
-
-        source = SubElement(top, 'source')
-        database = SubElement(source, 'database')
-        database.text = self.database_src
-
-        size_part = SubElement(top, 'size')
-        width = SubElement(size_part, 'width')
-        height = SubElement(size_part, 'height')
-        depth = SubElement(size_part, 'depth')
-        width.text = str(self.img_size[1])
-        height.text = str(self.img_size[0])
-        if len(self.img_size) == 3:
-            depth.text = str(self.img_size[2])
-        else:
-            depth.text = '1'
-
-        segmented = SubElement(top, 'segmented')
-        segmented.text = '0'
-        return top
-
-    def add_bnd_box(self, x_min, y_min, x_max, y_max, name, difficult):
-        bnd_box = {'xmin': x_min, 'ymin': y_min, 'xmax': x_max, 'ymax': y_max}
-        bnd_box['name'] = name
-        bnd_box['difficult'] = difficult
-        self.box_list.append(bnd_box)
-
-    def append_objects(self, top):
-        for each_object in self.box_list:
-            object_item = SubElement(top, 'object')
-            name = SubElement(object_item, 'name')
-            name.text = ustr(each_object['name'])
-            pose = SubElement(object_item, 'pose')
-            pose.text = "Unspecified"
-            truncated = SubElement(object_item, 'truncated')
-            if int(float(each_object['ymax'])) == int(float(self.img_size[0])) or (int(float(each_object['ymin'])) == 1):
-                truncated.text = "1"  # max == height or min
-            elif (int(float(each_object['xmax'])) == int(float(self.img_size[1]))) or (int(float(each_object['xmin'])) == 1):
-                truncated.text = "1"  # max == width or min
-            else:
-                truncated.text = "0"
-            difficult = SubElement(object_item, 'difficult')
-            difficult.text = str(bool(each_object['difficult']) & 1)
-            bnd_box = SubElement(object_item, 'bndbox')
-            x_min = SubElement(bnd_box, 'xmin')
-            x_min.text = str(each_object['xmin'])
-            y_min = SubElement(bnd_box, 'ymin')
-            y_min.text = str(each_object['ymin'])
-            x_max = SubElement(bnd_box, 'xmax')
-            x_max.text = str(each_object['xmax'])
-            y_max = SubElement(bnd_box, 'ymax')
-            y_max.text = str(each_object['ymax'])
-
-    def save(self, target_file=None):
-        root = self.gen_xml()
-        self.append_objects(root)
-        out_file = None
-        if target_file is None:
-            out_file = codecs.open(
-                self.filename + TXT_EXT, 'w', encoding=ENCODE_METHOD)
-        else:
-            out_file = codecs.open(target_file, 'w', encoding=ENCODE_METHOD)
-
-        prettify_result = self.prettify(root)
-        out_file.write(prettify_result.decode('utf8'))
+    def __write(self, filename, ext, content):
+        out_file = codecs.open(filename + ext, 'w', encoding=ENCODE_METHOD)
+        out_file.write(content)
         out_file.close()
+    
+    def __format_coordinates(self,points):
+        output = ''
+        for point in points:
+            output += str(point[0]) + ',' + str(point[1])
+        return output
+    
+    def __print_shape(self,shape):
+        return '1,' + self.__format_coordinates(shape['points']) + ',' + shape['transcript'] + ',' + shape['label'] + '\n'
 
+    # index, box_coordinates (clockwise 8 values), transcripts, box_entity_types
+    def __write_boxes_and_transcripts(self):
+        content=''
+        for shape in self.shapes:
+            content += self.__print_shape(shape)
+        self.__write(path.join(self.boxes_and_transcripts_path,self.file_name),TSV_EXT,content)
+    
+    # JSON list of the entites ({"entity_name": 'entity_value, ...})
+    def __write_entities(self):
+        content = "{"
+        for shape in self.shapes:
+            content += "'" + shape['label']+"':'"+shape['transcript']+"',"
+        content += "}"
+        self.__write(path.join(self.entities_path,self.file_name),TXT_EXT,content)
+    
+    # JPG image of the object
+    def __save_image(self):
+        content = ""
+        self.__write(self.file_name,JPG_EXT,content)
+    
+    def __create_samples_list(self):
+        filename = self.folder_name + "samples_list"
+        content = ""
+        self.__write(filename,CSV_EXT,content)
+
+    def __create_directories(self):
+        print("Creating directory ", self.boxes_and_transcripts_path)
+        mkdir(path.join(self.folder_name, "boxes_and_transcripts"))
+        print("Creating directory ",self.entities_path)
+        mkdir(self.entities_path)
+        print("Creating directory ",self.images_path)
+        mkdir(self.images_path)
+    
+    def __exists_directories(self):
+        return path.exists(self.boxes_and_transcripts_path) and path.exists(self.entities_path) and path.exists(self.images_path)
+
+    def save(self):
+        if not self.__exists_directories():
+            self.__create_directories()
+        self.__write_boxes_and_transcripts()
+        self.__write_entities()
+        #self.__save_image()
+        #self.__create_samples_list()
+    
 
 class PickReader:
 

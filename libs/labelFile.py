@@ -50,19 +50,13 @@ class LabelFile(object):
         writer.verified = self.verified
         writer.write()
 
-    def save_pick_format(self, filename, shapes, image_path,
-                        image_data, class_list, line_color=None, fill_color=None, database_src=None):
-        img_folder_name = os.path.basename(os.path.dirname(image_path))
-        img_file_name = os.path.basename(image_path)
-
-        image = QImage()
-        image.load(image_path)
-        image_shape = [image.height(), image.width(),
-                       1 if image.isGrayscale() else 3]
-        writer = PickWriter(img_folder_name, img_file_name,
-                                image_shape, shapes, filename, local_img_path=image_path)
+    # Requires : list of entities, list of boxes and their transcripts, image related
+    def save_pick_format(self, folder_name, filename, shapes, image_path,
+                        image_data, entities_list):
+        writer = PickWriter(folder_name, filename,
+                                shapes, image_data, entities_list, local_img_path=image_path)
         writer.verified = self.verified
-        writer.write()
+        writer.save()
 
     def save_pascal_voc_format(self, filename, shapes, image_path, image_data,
                                line_color=None, fill_color=None, database_src=None):
