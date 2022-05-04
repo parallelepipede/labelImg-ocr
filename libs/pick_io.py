@@ -14,11 +14,11 @@ ENCODE_METHOD = DEFAULT_ENCODING
 
 class PickWriter:
 
-    def __init__(self, folder_name, file_name, shapes, img_data, entities_list, database_src='Unknown', local_img_path=None):
+    def __init__(self, folder_name, file_name, shapes, pillow_image, entities_list, database_src='Unknown', local_img_path=None):
         self.folder_name = folder_name
         self.file_name = file_name
         self.database_src = database_src
-        self.img_data = img_data
+        self.pillow_image = pillow_image
         self.shapes = shapes
         self.local_img_path = local_img_path
         self.entities_list = entities_list
@@ -57,8 +57,8 @@ class PickWriter:
     
     # JPG image of the object
     def __save_image(self):
-        content = ""
-        self.__write(self.file_name,JPG_EXT,content)
+        print("Image saved at ",path.join(self.images_path,self.file_name+JPG_EXT))
+        self.pillow_image.save(path.join(self.images_path,self.file_name+JPG_EXT))
     
     def __create_samples_list(self):
         filename = self.folder_name + "samples_list"
@@ -81,7 +81,7 @@ class PickWriter:
             self.__create_directories()
         self.__write_boxes_and_transcripts()
         self.__write_entities()
-        #self.__save_image()
+        self.__save_image()
         #self.__create_samples_list()
     
 

@@ -52,9 +52,9 @@ class LabelFile(object):
 
     # Requires : list of entities, list of boxes and their transcripts, image related
     def save_pick_format(self, folder_name, filename, shapes, image_path,
-                        image_data, entities_list):
+                        pillow_image, entities_list):
         writer = PickWriter(folder_name, filename,
-                                shapes, image_data, entities_list, local_img_path=image_path)
+                                shapes, pillow_image, entities_list, local_img_path=image_path)
         writer.verified = self.verified
         writer.save()
 

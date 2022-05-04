@@ -923,7 +923,7 @@ class MainWindow(QMainWindow, WindowMixin):
                                                       self.label_hist, self.line_color.getRgb(), self.fill_color.getRgb())
             elif self.label_file_format == LabelFileFormat.PICK:
                 file_name = os.path.basename(annotation_file_path)
-                self.label_file.save_pick_format(self.default_save_dir, file_name, shapes, self.file_path, self.image_data,
+                self.label_file.save_pick_format(self.default_save_dir, file_name, shapes, self.file_path, self.pillow_image,
                                                       self.label_hist)
             else:
                 self.label_file.save(annotation_file_path, shapes, self.file_path, self.image_data,
