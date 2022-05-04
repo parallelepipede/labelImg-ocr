@@ -1139,6 +1139,7 @@ class MainWindow(QMainWindow, WindowMixin):
                 # read data first and store for saving into label file.
                 if os.path.splitext(unicode_file_path)[1] == '.pdf' : 
                     pdf_file = fitz.open(unicode_file_path)
+                    #TODO separate multipages PDF into several images to deal with all of them
                     if len(pdf_file) > 1 : 
                         self.error_message(u'Error opening file',
                                    u"<p><i>%s</i> has multiple page." % unicode_file_path)
