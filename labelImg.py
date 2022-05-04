@@ -14,6 +14,7 @@ import webbrowser as wb
 from functools import partial
 import fitz
 import pytesseract
+from sqlalchemy import null
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__),'tesseract.exe')#tesseract_path
 os.environ['TESSDATA_PREFIX'] = os.path.join(os.path.dirname(__file__),'tessdata')
 
@@ -1137,9 +1138,8 @@ class MainWindow(QMainWindow, WindowMixin):
             else:
                 # Load image:
                 # read data first and store for saving into label file.
-                if os.path.splitext(unicode_file_path)[1] == '.pdf' : 
+                if os.path.splitext(unicode_file_path)[1] == '.pdf' :
                     pdf_file = fitz.open(unicode_file_path)
-                    #TODO separate multipages PDF into several images to deal with all of them
                     if len(pdf_file) > 1 : 
                         self.error_message(u'Error opening file',
                                    u"<p><i>%s</i> has multiple page." % unicode_file_path)
@@ -1301,9 +1301,10 @@ class MainWindow(QMainWindow, WindowMixin):
                 if file.lower().endswith(tuple(extensions)):
                     relative_path = os.path.join(root, file)
                     path = ustr(os.path.abspath(relative_path))
-                    if os.path.splitext(path)[1] == '.pdf' : 
-                        pdf_file = fitz.open(path)
-                        if len(pdf_file) > 1 :
+                    if os.path.splitext(path)[1] == '.pdf' :
+                        try: 
+                            fitz.open(path)
+                        except fitz.fitz.EmptyFileError:
                             continue
                     images.append(path)
         natural_sort(images, key=lambda x: x.lower())
