@@ -56,7 +56,6 @@ from libs.create_ml_io import CreateMLReader
 from libs.create_ml_io import JSON_EXT
 from libs.ustr import ustr
 from libs.hashableQListWidgetItem import HashableQListWidgetItem
-from libs.pick_io import PickReader
 
 __appname__ = 'labelImg'
 
@@ -1210,8 +1209,6 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.load_yolo_txt_by_filename(txt_path)
             elif os.path.isfile(json_path):
                 self.load_create_ml_json_by_filename(json_path, file_path)
-            elif os.path.isfile(txt_path):
-                self.load_pick_txt_by_filename(json_path, file_path)
 
         else:
             xml_path = os.path.splitext(file_path)[0] + XML_EXT
@@ -1638,19 +1635,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.load_labels(shapes)
         self.canvas.verified = t_yolo_parse_reader.verified
     
-    def load_pick_txt_by_filename(self, txt_path):
-        if self.file_path is None:
-            return
-        if os.path.isfile(txt_path) is False:
-            return
-
-        self.set_format(FORMAT_PICK)
-        t_pick_parse_reader = PickReader(txt_path, self.image)
-        shapes = t_pick_parse_reader.get_shapes()
-        print(shapes)
-        self.load_labels(shapes)
-        self.canvas.verified = t_pick_parse_reader.verified
-
     def load_create_ml_json_by_filename(self, json_path, file_path):
         if self.file_path is None:
             return
