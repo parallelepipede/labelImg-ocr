@@ -35,11 +35,11 @@ class PickWriter:
     def __format_coordinates(self,points):
         output = ''
         for point in points:
-            output += str(point[0]) + ',' + str(point[1])
+            output += str(round(point[0])) + ',' + str(round(point[1])) + ','
         return output
     
     def __print_shape(self,shape):
-        return '1,' + self.__format_coordinates(shape['points']) + ',' + shape['transcript'] + ',' + shape['label'] + '\n'
+        return '1,' + self.__format_coordinates(shape['points']) + shape['transcript'] + ',' + shape['label'] + '\n'
 
     # index, box_coordinates (clockwise 8 values), transcripts, box_entity_types
     def __write_boxes_and_transcripts(self):
