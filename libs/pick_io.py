@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
-from xml.etree import ElementTree
-from lxml import etree
 import codecs
 from libs.constants import DEFAULT_ENCODING
 from os import mkdir, path
 
 TXT_EXT = '.txt'
-CSV_EXT = '.csv'
 JPG_EXT = '.jpg'
 TSV_EXT = '.tsv'
 ENCODE_METHOD = DEFAULT_ENCODING
