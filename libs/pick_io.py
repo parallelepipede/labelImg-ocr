@@ -59,11 +59,6 @@ class PickWriter:
     def __save_image(self):
         print("Image saved at ",path.join(self.images_path,self.file_name+JPG_EXT))
         self.pillow_image.save(path.join(self.images_path,self.file_name+JPG_EXT))
-    
-    def __create_samples_list(self):
-        filename = self.folder_name + "samples_list"
-        content = ""
-        self.__write(filename,CSV_EXT,content)
 
     def __create_directories(self):
         print("Creating directory ", self.boxes_and_transcripts_path)
@@ -82,4 +77,3 @@ class PickWriter:
         self.__write_boxes_and_transcripts()
         self.__write_entities()
         self.__save_image()
-        #self.__create_samples_list()
