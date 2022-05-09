@@ -11,10 +11,10 @@ ENCODE_METHOD = DEFAULT_ENCODING
 
 class PickWriter:
 
-    def __init__(self, folder_name, file_name, shapes, pillow_image, entities_list, database_src='Unknown', local_img_path=None):
+    def __init__(self, folder_name, file_name, shapes, pillow_image, entities_list, database_dir, local_img_path=None):
         self.folder_name = folder_name
         self.file_name = file_name
-        self.database_src = database_src
+        self.database_dir = database_dir
         self.pillow_image = pillow_image
         self.shapes = shapes
         self.local_img_path = local_img_path

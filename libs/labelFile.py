@@ -51,10 +51,10 @@ class LabelFile(object):
         writer.write()
 
     # Requires : list of entities, list of boxes and their transcripts, image related
-    def save_pick_format(self, folder_name, filename, shapes, image_path,
+    def save_pick_format(self, folder_name, filename, shapes, database_dir, image_path,
                         pillow_image, entities_list):
         writer = PickWriter(folder_name, filename,
-                                shapes, pillow_image, entities_list, local_img_path=image_path)
+                                shapes, pillow_image, entities_list, database_dir, local_img_path=image_path)
         writer.verified = self.verified
         writer.save()
 

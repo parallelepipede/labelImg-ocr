@@ -6,6 +6,7 @@ from copy import deepcopy
 import argparse
 import codecs
 import os
+from pathlib import Path
 import platform
 import shutil
 import sys
@@ -919,12 +920,21 @@ class MainWindow(QMainWindow, WindowMixin):
             elif self.label_file_format == LabelFileFormat.CREATE_ML:
                 if annotation_file_path[-5:].lower() != ".json":
                     annotation_file_path += JSON_EXT
-                self.label_file.save_create_ml_format(annotation_file_path, shapes, self.file_path, self.image_data,
+                self.label_file.save_create_ml_format(annotation_file_path, shapes, self.dir_name, self.file_path, self.image_data,
                                                       self.label_hist, self.line_color.getRgb(), self.fill_color.getRgb())
             elif self.label_file_format == LabelFileFormat.PICK:
                 file_name = os.path.basename(annotation_file_path)
-                self.label_file.save_pick_format(self.default_save_dir, file_name, shapes, self.file_path, self.pillow_image,
+                self.label_file.save_pick_format(self.default_save_dir, file_name, shapes, self.last_open_dir, self.file_path, self.pillow_image,
                                                       self.label_hist)
+                # TODO implement move after saving the image
+                # try:
+                #     db_dir_path = Path(self.dir_name)
+                #     last_index = self.cur_img_idx
+                #     self.open_next_image()
+                #     shutil.move(os.path.join(self.dir_name,self.file_name+'.jpg'),os.path.join(db_dir_path.parent.absolute(),'Base_CV_annotated'))
+                #     self.m_img_list.pop(last_index)
+                # except shutil.Error as err:
+                #     print(err)
             else:
                 self.label_file.save(annotation_file_path, shapes, self.file_path, self.image_data,
                                      self.line_color.getRgb(), self.fill_color.getRgb())
