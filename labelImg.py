@@ -1419,11 +1419,11 @@ class MainWindow(QMainWindow, WindowMixin):
         if self.file_path is None:
             return
 
-        if self.cur_img_idx - 1 >= 0:
-            self.cur_img_idx -= 1
-            filename = self.m_img_list[self.cur_img_idx]
-            if filename:
-                self.load_file(filename)
+        self.cur_img_idx -= 1
+        self.cur_img_idx %= self.img_count
+        filename = self.m_img_list[self.cur_img_idx]
+        if filename:
+            self.load_file(filename)
 
     def open_next_image(self, _value=False):
         # Proceeding next image without dialog if having any label
@@ -1449,9 +1449,9 @@ class MainWindow(QMainWindow, WindowMixin):
             filename = self.m_img_list[0]
             self.cur_img_idx = 0
         else:
-            if self.cur_img_idx + 1 < self.img_count:
-                self.cur_img_idx += 1
-                filename = self.m_img_list[self.cur_img_idx]
+            self.cur_img_idx += 1
+            self.cur_img_idx %= self.img_count
+            filename = self.m_img_list[self.cur_img_idx]
 
         if filename:
             self.load_file(filename)
