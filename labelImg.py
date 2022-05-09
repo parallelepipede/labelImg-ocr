@@ -926,13 +926,14 @@ class MainWindow(QMainWindow, WindowMixin):
                 file_name = os.path.basename(annotation_file_path)
                 self.label_file.save_pick_format(self.default_save_dir, file_name, shapes, self.last_open_dir, self.file_path, self.pillow_image,
                                                       self.label_hist)
-                # TODO implement move after saving the image
+                #TODO implement move after saving the image
                 # try:
                 #     db_dir_path = Path(self.dir_name)
                 #     last_index = self.cur_img_idx
                 #     self.open_next_image()
                 #     shutil.move(os.path.join(self.dir_name,self.file_name+'.jpg'),os.path.join(db_dir_path.parent.absolute(),'Base_CV_annotated'))
                 #     self.m_img_list.pop(last_index)
+                #     self.img_count -= 1
                 # except shutil.Error as err:
                 #     print(err)
             else:
