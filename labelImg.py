@@ -1,27 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from copy import deepcopy
 import argparse
 import codecs
+import io
 import os
 import platform
 import shutil
 import sys
-import io
 import webbrowser as wb
+from copy import deepcopy
 from functools import partial
-import numpy as np
+from pathlib import Path
+
 import cv2
 import fitz
+import numpy as np
 import pytesseract
+
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__),'tesseract.exe')#tesseract_path
 os.environ['TESSDATA_PREFIX'] = os.path.join(os.path.dirname(__file__),'tessdata')
 
-from PIL import Image, ImageOps, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 
 try:
-    from PyQt5.QtGui import *
     from PyQt5.QtCore import *
+    from PyQt5.QtGui import *
     from PyQt5.QtWidgets import *
 except ImportError:
     # needed for py3+qt4
@@ -34,28 +37,25 @@ except ImportError:
     from PyQt4.QtGui import *
     from PyQt4.QtCore import *
 
-from libs.combobox import ComboBox
-from libs.default_label_combobox import DefaultLabelComboBox
-from libs.resources import *
-from libs.constants import *
-from libs.utils import *
-from libs.settings import Settings
-from libs.shape import Shape, DEFAULT_LINE_COLOR, DEFAULT_FILL_COLOR
-from libs.stringBundle import StringBundle
 from libs.canvas import Canvas
-from libs.zoomWidget import ZoomWidget
-from libs.labelDialog import LabelDialog
 from libs.colorDialog import ColorDialog
-from libs.labelFile import LabelFile, LabelFileError, LabelFileFormat
-from libs.toolBar import ToolBar
-from libs.pascal_voc_io import PascalVocReader
-from libs.pascal_voc_io import XML_EXT
-from libs.yolo_io import YoloReader
-from libs.yolo_io import TXT_EXT
-from libs.create_ml_io import CreateMLReader
-from libs.create_ml_io import JSON_EXT
-from libs.ustr import ustr
+from libs.combobox import ComboBox
+from libs.constants import *
+from libs.create_ml_io import JSON_EXT, CreateMLReader
+from libs.default_label_combobox import DefaultLabelComboBox
 from libs.hashableQListWidgetItem import HashableQListWidgetItem
+from libs.labelDialog import LabelDialog
+from libs.labelFile import LabelFile, LabelFileError, LabelFileFormat
+from libs.pascal_voc_io import XML_EXT, PascalVocReader
+from libs.resources import *
+from libs.settings import Settings
+from libs.shape import DEFAULT_FILL_COLOR, DEFAULT_LINE_COLOR, Shape
+from libs.stringBundle import StringBundle
+from libs.toolBar import ToolBar
+from libs.ustr import ustr
+from libs.utils import *
+from libs.yolo_io import TXT_EXT, YoloReader
+from libs.zoomWidget import ZoomWidget
 
 __appname__ = 'labelImg'
 
