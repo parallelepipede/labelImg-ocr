@@ -4,6 +4,7 @@ from copy import deepcopy
 import argparse
 import codecs
 import os
+from pathlib import Path
 import platform
 import shutil
 import sys
@@ -12,6 +13,7 @@ import webbrowser as wb
 from functools import partial
 import fitz
 import pytesseract
+from sqlalchemy import null
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__),'tesseract.exe')#tesseract_path
 os.environ['TESSDATA_PREFIX'] = os.path.join(os.path.dirname(__file__),'tessdata')
 
@@ -54,7 +56,6 @@ from libs.create_ml_io import CreateMLReader
 from libs.create_ml_io import JSON_EXT
 from libs.ustr import ustr
 from libs.hashableQListWidgetItem import HashableQListWidgetItem
-from libs.pick_io import PickReader
 
 __appname__ = 'labelImg'
 
@@ -891,8 +892,10 @@ class MainWindow(QMainWindow, WindowMixin):
         if self.label_file is None:
             self.label_file = LabelFile()
             self.label_file.verified = self.canvas.verified
+        
         def format_shape(s):
             return dict(label=s.label,
+                        transcript=self.shapes_to_items[s][1].replace('\n',''),
                         line_color=s.line_color.getRgb(),
                         fill_color=s.fill_color.getRgb(),
                         points=[(p.x(), p.y()) for p in s.points],
@@ -915,13 +918,22 @@ class MainWindow(QMainWindow, WindowMixin):
             elif self.label_file_format == LabelFileFormat.CREATE_ML:
                 if annotation_file_path[-5:].lower() != ".json":
                     annotation_file_path += JSON_EXT
-                self.label_file.save_create_ml_format(annotation_file_path, shapes, self.file_path, self.image_data,
+                self.label_file.save_create_ml_format(annotation_file_path, shapes, self.dir_name, self.file_path, self.image_data,
                                                       self.label_hist, self.line_color.getRgb(), self.fill_color.getRgb())
             elif self.label_file_format == LabelFileFormat.PICK:
-                if annotation_file_path[-4:].lower() != ".txt":
-                    annotation_file_path += TXT_EXT
-                self.label_file.save_pick_format(annotation_file_path, shapes, self.file_path, self.image_data,
-                                                      self.label_hist, self.line_color.getRgb(), self.fill_color.getRgb())
+                file_name = os.path.basename(annotation_file_path)
+                self.label_file.save_pick_format(self.default_save_dir, file_name, shapes, self.last_open_dir, self.file_path, self.pillow_image,
+                                                      self.label_hist)
+                #TODO implement move after saving the image
+                # try:
+                #     db_dir_path = Path(self.dir_name)
+                #     last_index = self.cur_img_idx
+                #     self.open_next_image()
+                #     shutil.move(os.path.join(self.dir_name,self.file_name+'.jpg'),os.path.join(db_dir_path.parent.absolute(),'Base_CV_annotated'))
+                #     self.m_img_list.pop(last_index)
+                #     self.img_count -= 1
+                # except shutil.Error as err:
+                #     print(err)
             else:
                 self.label_file.save(annotation_file_path, shapes, self.file_path, self.image_data,
                                      self.line_color.getRgb(), self.fill_color.getRgb())
@@ -1135,7 +1147,7 @@ class MainWindow(QMainWindow, WindowMixin):
             else:
                 # Load image:
                 # read data first and store for saving into label file.
-                if os.path.splitext(unicode_file_path)[1] == '.pdf' : 
+                if os.path.splitext(unicode_file_path)[1] == '.pdf' :
                     pdf_file = fitz.open(unicode_file_path)
                     if len(pdf_file) > 1 : 
                         self.error_message(u'Error opening file',
@@ -1207,8 +1219,6 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.load_yolo_txt_by_filename(txt_path)
             elif os.path.isfile(json_path):
                 self.load_create_ml_json_by_filename(json_path, file_path)
-            elif os.path.isfile(txt_path):
-                self.load_pick_txt_by_filename(json_path, file_path)
 
         else:
             xml_path = os.path.splitext(file_path)[0] + XML_EXT
@@ -1300,9 +1310,10 @@ class MainWindow(QMainWindow, WindowMixin):
                 if file.lower().endswith(tuple(extensions)):
                     relative_path = os.path.join(root, file)
                     path = ustr(os.path.abspath(relative_path))
-                    if os.path.splitext(path)[1] == '.pdf' : 
-                        pdf_file = fitz.open(path)
-                        if len(pdf_file) > 1 :
+                    if os.path.splitext(path)[1] == '.pdf' :
+                        try: 
+                            fitz.open(path)
+                        except fitz.fitz.EmptyFileError:
                             continue
                     images.append(path)
         natural_sort(images, key=lambda x: x.lower())
@@ -1407,11 +1418,11 @@ class MainWindow(QMainWindow, WindowMixin):
         if self.file_path is None:
             return
 
-        if self.cur_img_idx - 1 >= 0:
-            self.cur_img_idx -= 1
-            filename = self.m_img_list[self.cur_img_idx]
-            if filename:
-                self.load_file(filename)
+        self.cur_img_idx -= 1
+        self.cur_img_idx %= self.img_count
+        filename = self.m_img_list[self.cur_img_idx]
+        if filename:
+            self.load_file(filename)
 
     def open_next_image(self, _value=False):
         # Proceeding next image without dialog if having any label
@@ -1437,9 +1448,9 @@ class MainWindow(QMainWindow, WindowMixin):
             filename = self.m_img_list[0]
             self.cur_img_idx = 0
         else:
-            if self.cur_img_idx + 1 < self.img_count:
-                self.cur_img_idx += 1
-                filename = self.m_img_list[self.cur_img_idx]
+            self.cur_img_idx += 1
+            self.cur_img_idx %= self.img_count
+            filename = self.m_img_list[self.cur_img_idx]
 
         if filename:
             self.load_file(filename)
@@ -1459,19 +1470,20 @@ class MainWindow(QMainWindow, WindowMixin):
             self.load_file(filename)
 
     def save_file(self, _value=False):
-        if self.default_save_dir is not None and len(ustr(self.default_save_dir)):
-            if self.file_path:
+        if self.file_path:
+            if self.default_save_dir is not None and len(ustr(self.default_save_dir)):
+                if self.file_path:
+                    image_file_name = os.path.basename(self.file_path)
+                    saved_file_name = os.path.splitext(image_file_name)[0]
+                    saved_path = os.path.join(ustr(self.default_save_dir), saved_file_name)
+                    self._save_file(saved_path)
+            else:
+                image_file_dir = os.path.dirname(self.file_path)
                 image_file_name = os.path.basename(self.file_path)
                 saved_file_name = os.path.splitext(image_file_name)[0]
-                saved_path = os.path.join(ustr(self.default_save_dir), saved_file_name)
-                self._save_file(saved_path)
-        else:
-            image_file_dir = os.path.dirname(self.file_path)
-            image_file_name = os.path.basename(self.file_path)
-            saved_file_name = os.path.splitext(image_file_name)[0]
-            saved_path = os.path.join(image_file_dir, saved_file_name)
-            self._save_file(saved_path if self.label_file
-                            else self.save_file_dialog(remove_ext=False))
+                saved_path = os.path.join(image_file_dir, saved_file_name)
+                self._save_file(saved_path if self.label_file
+                                else self.save_file_dialog(remove_ext=False))
 
     def save_file_as(self, _value=False):
         assert not self.image.isNull(), "cannot save empty image"
@@ -1634,19 +1646,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.load_labels(shapes)
         self.canvas.verified = t_yolo_parse_reader.verified
     
-    def load_pick_txt_by_filename(self, txt_path):
-        if self.file_path is None:
-            return
-        if os.path.isfile(txt_path) is False:
-            return
-
-        self.set_format(FORMAT_PICK)
-        t_pick_parse_reader = PickReader(txt_path, self.image)
-        shapes = t_pick_parse_reader.get_shapes()
-        print(shapes)
-        self.load_labels(shapes)
-        self.canvas.verified = t_pick_parse_reader.verified
-
     def load_create_ml_json_by_filename(self, json_path, file_path):
         if self.file_path is None:
             return
