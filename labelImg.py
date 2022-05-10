@@ -4,7 +4,6 @@ from copy import deepcopy
 import argparse
 import codecs
 import os
-from pathlib import Path
 import platform
 import shutil
 import sys
@@ -18,7 +17,7 @@ import pytesseract
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__),'tesseract.exe')#tesseract_path
 os.environ['TESSDATA_PREFIX'] = os.path.join(os.path.dirname(__file__),'tessdata')
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageFilter
 
 try:
     from PyQt5.QtGui import *
@@ -820,7 +819,8 @@ class MainWindow(QMainWindow, WindowMixin):
         p1,_,p3,_ = shape.points
 
         crop = self.pillow_image.crop(box = (p1.x(),p1.y(),p3.x(),p3.y()))
-        grayscale = ImageOps.grayscale(crop)
+        grayscale = ImageOps.autocontrast(ImageOps.grayscale(crop), cutoff=3) 
+        grayscale.filter(ImageFilter.SHARPEN)
         
         medium_crop = grayscale.resize((int(crop.size[0]*1.1),int(crop.size[1]*1.1)))
         ocr_text = pytesseract.image_to_string(medium_crop,lang='fra')
