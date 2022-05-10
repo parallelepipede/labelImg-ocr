@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-i = 0
 from copy import deepcopy
 import argparse
 import codecs
@@ -17,7 +15,7 @@ import pytesseract
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__),'tesseract.exe')#tesseract_path
 os.environ['TESSDATA_PREFIX'] = os.path.join(os.path.dirname(__file__),'tessdata')
 
-from PIL import Image, ImageOps, ImageFilter
+from PIL import Image, ImageOps
 
 try:
     from PyQt5.QtGui import *
