@@ -821,19 +821,6 @@ class MainWindow(QMainWindow, WindowMixin):
 
         crop = self.pillow_image.crop(box = (p1.x(),p1.y(),p3.x(),p3.y()))
         grayscale = ImageOps.grayscale(crop)
-        n,bins = np.histogram(np.array(grayscale))
-        mids = 0.5*(bins[1:] + bins[:-1])
-        mean = np.average(mids, weights=n)
-        print(bins, 'histogram')
-        print(mean, ' mean')
-        means = np.mean(np.array(grayscale))
-        print(means, 'means')
-        threshold_white = 200
-        
-
-        #binaryImage.save('binaryImage.png')
-        #cv2.imwrite('binaryImage.png', binaryImage)
-        #TODO : Gaussian Blur, soustraction de l'image
         
         medium_crop = grayscale.resize((int(crop.size[0]*1.1),int(crop.size[1]*1.1)))
         ocr_text = pytesseract.image_to_string(medium_crop,lang='fra')
@@ -844,12 +831,6 @@ class MainWindow(QMainWindow, WindowMixin):
             self.shapes_to_items[shape] = [item, ocr_text]
         else:
             self.shapes_to_items[shape] = [item, taller_ocr_text]
-        if means < threshold_white : 
-            grayscale_inverted = ImageOps.invert(grayscale)
-            medium_crop = grayscale_inverted.resize((int(crop.size[0]*1.1),int(crop.size[1]*1.1)))
-            medium_crop.save('grayscale.png')
-            ocr_text_inverted = pytesseract.image_to_string(medium_crop,lang='fra')
-            self.shapes_to_items[shape] = [item, ocr_text_inverted]
             
         self.label_list.addItem(item)
         self.ocr_text_edit.setText(self.shapes_to_items[shape][1])
@@ -945,22 +926,21 @@ class MainWindow(QMainWindow, WindowMixin):
                 file_name = os.path.basename(annotation_file_path)
                 self.label_file.save_pick_format(self.default_save_dir, file_name, shapes, self.last_open_dir, self.file_path, self.pillow_image,
                                                       self.label_hist)
-                #TODO implement move after saving the image
-                """
+                
                 try:
-                    db_dir_path = Path(self.dir_name)
-                    last_index = self.cur_img_idx
-                    self.open_next_image()
-                    shutil.move(os.path.join(self.dir_name,self.file_name+'.jpg'),os.path.join(db_dir_path.parent.absolute(),'Base_CV_annotated'))
-                    self.m_img_list.pop(last_index)
+                    shutil.move(self.file_path,os.path.join(Path(self.dir_name).parent.absolute(),'Base_CV_annotated'))
+                    self.m_img_list.pop(self.cur_img_idx)
                     self.img_count -= 1
+                    self.dirty = False  # change to True to add warning before saving
+                    self.open_next_image()
+                    
                 except shutil.Error as err:
                     print(err)
-                """
+                
             else:
                 self.label_file.save(annotation_file_path, shapes, self.file_path, self.image_data,
                                      self.line_color.getRgb(), self.fill_color.getRgb())
-            print('Image:{0} -> Annotation:{1}'.format(self.file_path, annotation_file_path))
+            #print('Image:{0} -> Annotation:{1}'.format(self.file_path, annotation_file_path))
             return True
         except LabelFileError as e:
             self.error_message(u'Error saving label data', u'<b>%s</b>' % e)
@@ -1449,6 +1429,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def open_next_image(self, _value=False):
         # Proceeding next image without dialog if having any label
+        
         if self.auto_saving.isChecked():
             if self.default_save_dir is not None:
                 if self.dirty is True:
@@ -1456,16 +1437,12 @@ class MainWindow(QMainWindow, WindowMixin):
             else:
                 self.change_save_dir_dialog()
                 return
-
         if not self.may_continue():
             return
-
         if self.img_count <= 0:
             return
-        
         if not self.m_img_list:
             return
-
         filename = None
         if self.file_path is None:
             filename = self.m_img_list[0]
@@ -1526,8 +1503,7 @@ class MainWindow(QMainWindow, WindowMixin):
             full_file_path = ustr(dlg.selectedFiles()[0])
             if remove_ext:
                 return os.path.splitext(full_file_path)[0]  # Return file path without the extension.
-            else:
-                return full_file_path
+            return full_file_path
         return ''
 
     def _save_file(self, annotation_file_path):
@@ -1665,7 +1641,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.set_format(FORMAT_YOLO)
         t_yolo_parse_reader = YoloReader(txt_path, self.image)
         shapes = t_yolo_parse_reader.get_shapes()
-        print(shapes)
         self.load_labels(shapes)
         self.canvas.verified = t_yolo_parse_reader.verified
     

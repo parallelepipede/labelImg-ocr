@@ -1,4 +1,4 @@
-pyqt==5
+pyqt5==5.14.1
 lxml==4.8.0
 pillow==9.1.0
 pytesseract==0.3.9
