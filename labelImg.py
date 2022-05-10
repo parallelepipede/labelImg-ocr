@@ -818,10 +818,17 @@ class MainWindow(QMainWindow, WindowMixin):
         self.items_to_shapes[item] = shape
         p1,_,p3,_ = shape.points
 
-        crop = self.pillow_image.crop(box = (p1.x(),p1.y(),p3.x(),p3.y()))
+        left, right = p1.x(),p3.x()
+        if p3.x() < p1.x():
+            left,right=right,left
+        upper,lower = p1.y(),p3.y()
+        if p3.y() < p1.y():
+            upper,lower=lower,upper
+
+        crop = self.pillow_image.crop(box = (left,upper,right,lower))
         grayscale = ImageOps.autocontrast(ImageOps.grayscale(crop), cutoff=3) 
         grayscale.filter(ImageFilter.SHARPEN)
-        
+
         medium_crop = grayscale.resize((int(crop.size[0]*1.1),int(crop.size[1]*1.1)))
         ocr_text = pytesseract.image_to_string(medium_crop,lang='fra')
         taller_crop = grayscale.resize((int(crop.size[0]*1.6),int(crop.size[1]*1.6)))
