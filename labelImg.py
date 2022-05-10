@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-i = 0
 from copy import deepcopy
 import argparse
 import codecs
 import os
-from pathlib import Path
 import platform
 import shutil
 import sys
@@ -15,12 +12,10 @@ import webbrowser as wb
 from functools import partial
 import fitz
 import pytesseract
-from sqlalchemy import null
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__),'tesseract.exe')#tesseract_path
 os.environ['TESSDATA_PREFIX'] = os.path.join(os.path.dirname(__file__),'tessdata')
 
 from PIL import Image, ImageOps, ImageFilter
-from numpy import mean
 
 try:
     from PyQt5.QtGui import *
