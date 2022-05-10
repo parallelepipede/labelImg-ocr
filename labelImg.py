@@ -11,9 +11,10 @@ import sys
 import io
 import webbrowser as wb
 from functools import partial
+import numpy as np
+import cv2
 import fitz
 import pytesseract
-from sqlalchemy import null
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__),'tesseract.exe')#tesseract_path
 os.environ['TESSDATA_PREFIX'] = os.path.join(os.path.dirname(__file__),'tessdata')
 
@@ -820,6 +821,19 @@ class MainWindow(QMainWindow, WindowMixin):
 
         crop = self.pillow_image.crop(box = (p1.x(),p1.y(),p3.x(),p3.y()))
         grayscale = ImageOps.grayscale(crop)
+        n,bins = np.histogram(np.array(grayscale))
+        mids = 0.5*(bins[1:] + bins[:-1])
+        mean = np.average(mids, weights=n)
+        print(bins, 'histogram')
+        print(mean, ' mean')
+        means = np.mean(np.array(grayscale))
+        print(means, 'means')
+        threshold_white = 200
+        
+
+        #binaryImage.save('binaryImage.png')
+        #cv2.imwrite('binaryImage.png', binaryImage)
+        #TODO : Gaussian Blur, soustraction de l'image
         
         medium_crop = grayscale.resize((int(crop.size[0]*1.1),int(crop.size[1]*1.1)))
         ocr_text = pytesseract.image_to_string(medium_crop,lang='fra')
@@ -830,6 +844,13 @@ class MainWindow(QMainWindow, WindowMixin):
             self.shapes_to_items[shape] = [item, ocr_text]
         else:
             self.shapes_to_items[shape] = [item, taller_ocr_text]
+        if means < threshold_white : 
+            grayscale_inverted = ImageOps.invert(grayscale)
+            medium_crop = grayscale_inverted.resize((int(crop.size[0]*1.1),int(crop.size[1]*1.1)))
+            medium_crop.save('grayscale.png')
+            ocr_text_inverted = pytesseract.image_to_string(medium_crop,lang='fra')
+            self.shapes_to_items[shape] = [item, ocr_text_inverted]
+            
         self.label_list.addItem(item)
         self.ocr_text_edit.setText(self.shapes_to_items[shape][1])
 
@@ -925,15 +946,17 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.label_file.save_pick_format(self.default_save_dir, file_name, shapes, self.last_open_dir, self.file_path, self.pillow_image,
                                                       self.label_hist)
                 #TODO implement move after saving the image
-                # try:
-                #     db_dir_path = Path(self.dir_name)
-                #     last_index = self.cur_img_idx
-                #     self.open_next_image()
-                #     shutil.move(os.path.join(self.dir_name,self.file_name+'.jpg'),os.path.join(db_dir_path.parent.absolute(),'Base_CV_annotated'))
-                #     self.m_img_list.pop(last_index)
-                #     self.img_count -= 1
-                # except shutil.Error as err:
-                #     print(err)
+                """
+                try:
+                    db_dir_path = Path(self.dir_name)
+                    last_index = self.cur_img_idx
+                    self.open_next_image()
+                    shutil.move(os.path.join(self.dir_name,self.file_name+'.jpg'),os.path.join(db_dir_path.parent.absolute(),'Base_CV_annotated'))
+                    self.m_img_list.pop(last_index)
+                    self.img_count -= 1
+                except shutil.Error as err:
+                    print(err)
+                """
             else:
                 self.label_file.save(annotation_file_path, shapes, self.file_path, self.image_data,
                                      self.line_color.getRgb(), self.fill_color.getRgb())
