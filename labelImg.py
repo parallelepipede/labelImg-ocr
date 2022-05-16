@@ -931,8 +931,7 @@ class MainWindow(QMainWindow, WindowMixin):
                                                       self.label_hist, self.line_color.getRgb(), self.fill_color.getRgb())
             elif self.label_file_format == LabelFileFormat.PICK:
                 file_name = os.path.basename(annotation_file_path)
-                self.label_file.save_pick_format(self.default_save_dir, file_name, shapes, self.last_open_dir, self.file_path, self.pillow_image,
-                                                      self.label_hist)
+                self.label_file.save_pick_format(self.default_save_dir, file_name, shapes,self.pillow_image)
                 
                 try:
                     shutil.move(self.file_path,os.path.join(Path(self.dir_name).parent.absolute(),'Base_CV_annotated'))

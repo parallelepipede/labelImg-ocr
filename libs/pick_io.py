@@ -11,24 +11,28 @@ ENCODE_METHOD = DEFAULT_ENCODING
 
 class PickWriter:
 
-    def __init__(self, folder_name, file_name, shapes, pillow_image, entities_list, database_dir, local_img_path=None):
+    def __init__(self, folder_name, file_name, shapes, pillow_image):
+        # Folder where all annotations are saved
         self.folder_name = folder_name
+        # Name of the processed file without extension
         self.file_name = file_name
-        self.database_dir = database_dir
+        # Pillow image of the processed file
         self.pillow_image = pillow_image
+        # Registered shapes for the processed file
         self.shapes = shapes
-        self.local_img_path = local_img_path
-        self.entities_list = entities_list
         self.verified = False
+        # Useful paths
         self.boxes_and_transcripts_path = path.join(self.folder_name, "boxes_and_transcripts")
         self.entities_path = path.join(self.folder_name, "entities")
         self.images_path = path.join(self.folder_name, "images")
 
+    # Write a file with his name, extension and content
     def __write(self, filename, ext, content):
         out_file = codecs.open(filename + ext, 'w', encoding=ENCODE_METHOD)
         out_file.write(content)
         out_file.close()
     
+    # Format coordinates of every points for pick annotation format
     def __format_coordinates(self,points):
         output = ''
         for point in points:
@@ -38,6 +42,7 @@ class PickWriter:
     def __print_shape(self,shape):
         return '1,' + self.__format_coordinates(shape['points']) + shape['transcript'] + ',' + shape['label'] + '\n'
 
+    # Write boxes coordinates and transcripts of these boxes
     # index, box_coordinates (clockwise 8 values), transcripts, box_entity_types
     def __write_boxes_and_transcripts(self):
         content=''
