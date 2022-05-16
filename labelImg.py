@@ -808,7 +808,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.actions.shapeLineColor.setEnabled(selected)
         self.actions.shapeFillColor.setEnabled(selected)
 
-    def add_label(self, shape):
+    def add_label(self, shape, loading=False):
     
         shape.paint_label = self.display_label_option.isChecked()
         item = HashableQListWidgetItem(shape.label)
@@ -818,30 +818,32 @@ class MainWindow(QMainWindow, WindowMixin):
         self.items_to_shapes[item] = shape
         p1,_,p3,_ = shape.points
 
-        left, right = p1.x(),p3.x()
-        if p3.x() < p1.x():
-            left,right=right,left
-        upper,lower = p1.y(),p3.y()
-        if p3.y() < p1.y():
-            upper,lower=lower,upper
+        if not loading:
+            left, right = p1.x(),p3.x()
+            if p3.x() < p1.x():
+                left,right=right,left
+            upper,lower = p1.y(),p3.y()
+            if p3.y() < p1.y():
+                upper,lower=lower,upper
 
-        crop = self.pillow_image.crop(box = (left,upper,right,lower))
-        grayscale = ImageOps.autocontrast(ImageOps.grayscale(crop), cutoff=3) 
-        grayscale.filter(ImageFilter.SHARPEN)
+            crop = self.pillow_image.crop(box = (left,upper,right,lower))
+            grayscale = ImageOps.autocontrast(ImageOps.grayscale(crop), cutoff=3) 
+            grayscale.filter(ImageFilter.SHARPEN)
 
-        medium_crop = grayscale.resize((int(crop.size[0]*1.1),int(crop.size[1]*1.1)))
-        ocr_text = pytesseract.image_to_string(medium_crop,lang='fra')
-        taller_crop = grayscale.resize((int(crop.size[0]*1.6),int(crop.size[1]*1.6)))
-        taller_ocr_text = pytesseract.image_to_string(taller_crop,lang='fra')
+            medium_crop = grayscale.resize((int(crop.size[0]*1.1),int(crop.size[1]*1.1)))
+            ocr_text = pytesseract.image_to_string(medium_crop,lang='fra')
+            taller_crop = grayscale.resize((int(crop.size[0]*1.6),int(crop.size[1]*1.6)))
+            taller_ocr_text = pytesseract.image_to_string(taller_crop,lang='fra')
 
-        if len(ocr_text) > len(taller_ocr_text) : 
-            self.shapes_to_items[shape] = [item, ocr_text]
-        else:
-            self.shapes_to_items[shape] = [item, taller_ocr_text]
+            if len(ocr_text) > len(taller_ocr_text) : 
+                self.shapes_to_items[shape] = [item, ocr_text]
+            else:
+                self.shapes_to_items[shape] = [item, taller_ocr_text]
+
+            self.ocr_text_edit.setText(self.shapes_to_items[shape][1])
             
         self.label_list.addItem(item)
-        self.ocr_text_edit.setText(self.shapes_to_items[shape][1])
-
+        
         for action in self.actions.onShapesPresent:
             action.setEnabled(True)
         self.update_combo_box()
@@ -884,7 +886,7 @@ class MainWindow(QMainWindow, WindowMixin):
             else:
                 shape.fill_color = generate_color_by_text(label)
                     
-            item = self.add_label(shape)
+            item = self.add_label(shape,loading=True)
             self.shapes_to_items.update({shape:[item,transcript]})
         
         self.update_combo_box()
