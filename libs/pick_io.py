@@ -102,7 +102,7 @@ class PickReader:
 
     def __parse_pick_format(self):
         # Open file and parse file and save parsing in shape
-        with open(path.join(self.boxes_and_transcripts_path,self.file_name+TSV_EXT)) as file:
+        with open(path.join(self.boxes_and_transcripts_path,self.file_name+TSV_EXT),encoding=DEFAULT_ENCODING) as file:
             tsv_file = csv.reader(file, delimiter=",")
             for line in tsv_file:
                 points = [(int(line[i]),int(line[i+1])) for i in range(1,9,2)]
