@@ -857,8 +857,9 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def load_labels(self, shapes):
         s = []
-        for label, points, line_color, fill_color, difficult in shapes:
+        for label, transcript, points, line_color, fill_color, difficult in shapes:
             shape = Shape(label=label)
+            self.shapes_to_items.update({shape:[False,transcript]})
             for x, y in points:
 
                 # Ensure the labels are within the bounds of the image. If not, fix them.

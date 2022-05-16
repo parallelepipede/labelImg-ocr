@@ -79,3 +79,27 @@ class PickWriter:
         self.__write_boxes_and_transcripts()
         self.__write_entities()
         self.__save_image()
+
+class PickReader:
+    def __init__(self, folder_name, file_name):
+        # Folder where all annotations are saved
+        self.folder_name = folder_name
+        # Name of the processed file without extension
+        self.file_name = file_name
+        # shapes type:
+        # [label, transcript, [(x1,y1), (x2,y2), (x3,y3), (x4,y4)], color, color, difficult]
+        self.shapes = []
+        # Useful paths
+        self.boxes_and_transcripts_path = path.join(self.folder_name, "boxes_and_transcripts")
+        self.entities_path = path.join(self.folder_name, "entities")
+        self.images_path = path.join(self.folder_name, "images")
+
+    def get_shapes(self):
+        return self.shapes
+    
+    def add_shape(self, label, transcript, x_min, y_min, x_max, y_max, difficult=False):
+        points = [(x_min, y_min), (x_max, y_min), (x_max, y_max), (x_min, y_max)]
+        self.shapes.append((label, transcript, points, None, None, difficult))
+
+    def parse_pick_format(self):
+        return
