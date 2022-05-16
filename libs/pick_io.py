@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
-import codecs
+import codecs, csv
 from libs.constants import DEFAULT_ENCODING
 from os import mkdir, path
 
@@ -91,15 +91,20 @@ class PickReader:
         self.shapes = []
         # Useful paths
         self.boxes_and_transcripts_path = path.join(self.folder_name, "boxes_and_transcripts")
-        self.entities_path = path.join(self.folder_name, "entities")
-        self.images_path = path.join(self.folder_name, "images")
+        # Actions
+        self.__parse_pick_format()
 
     def get_shapes(self):
         return self.shapes
     
-    def add_shape(self, label, transcript, x_min, y_min, x_max, y_max, difficult=False):
-        points = [(x_min, y_min), (x_max, y_min), (x_max, y_max), (x_min, y_max)]
-        self.shapes.append((label, transcript, points, None, None, difficult))
+    def __add_shape(self, label, transcript, points):
+        self.shapes.append((label, transcript, points, None, None, False))
 
-    def parse_pick_format(self):
-        return
+    def __parse_pick_format(self):
+        # Open file and parse file and save parsing in shape
+        with open(path.join(self.boxes_and_transcripts_path,self.file_name+TSV_EXT)) as file:
+            tsv_file = csv.reader(file, delimiter=",")
+            for line in tsv_file:
+                points = [(int(line[i]),int(line[i+1])) for i in range(1,9,2)]
+                transcript = ",".join(line[9:-1])
+                self.__add_shape(line[-1],transcript,points)

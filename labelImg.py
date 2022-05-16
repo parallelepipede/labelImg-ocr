@@ -12,10 +12,10 @@ from copy import deepcopy
 from functools import partial
 from pathlib import Path
 
-import cv2
 import fitz
-import numpy as np
 import pytesseract
+
+from libs.pick_io import TSV_EXT, PickReader
 
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__),'tesseract.exe')#tesseract_path
 os.environ['TESSDATA_PREFIX'] = os.path.join(os.path.dirname(__file__),'tessdata')
@@ -1219,6 +1219,7 @@ class MainWindow(QMainWindow, WindowMixin):
             xml_path = os.path.join(self.default_save_dir, basename + XML_EXT)
             txt_path = os.path.join(self.default_save_dir, basename + TXT_EXT)
             json_path = os.path.join(self.default_save_dir, basename + JSON_EXT)
+            tsv_path = os.path.join(self.default_save_dir, basename + TSV_EXT)
 
             """Annotation file priority:
             PascalXML > YOLO
@@ -1229,6 +1230,8 @@ class MainWindow(QMainWindow, WindowMixin):
                 self.load_yolo_txt_by_filename(txt_path)
             elif os.path.isfile(json_path):
                 self.load_create_ml_json_by_filename(json_path, file_path)
+            elif os.path.isfile(tsv_path):
+                self.load_pick_tsv_by_filename(basename)
 
         else:
             xml_path = os.path.splitext(file_path)[0] + XML_EXT
@@ -1361,6 +1364,8 @@ class MainWindow(QMainWindow, WindowMixin):
                 if isinstance(filename, (tuple, list)):
                     filename = filename[0]
             self.load_pascal_xml_by_filename(filename)
+        if self.label_file_format == LabelFileFormat.PICK:
+            self.load_pick_tsv_by_filename(os.path.basename(self.file_path)[:-4])
 
     def open_dir_dialog(self, _value=False, dir_path=None, silent=False):
         if not self.may_continue():
@@ -1379,6 +1384,7 @@ class MainWindow(QMainWindow, WindowMixin):
             target_dir_path = ustr(default_open_dir_path)
         self.last_open_dir = target_dir_path
         self.import_dir_images(target_dir_path)
+
 
     def import_dir_images(self, dir_path):
         if not self.may_continue() or not dir_path:
@@ -1663,6 +1669,16 @@ class MainWindow(QMainWindow, WindowMixin):
         shapes = create_ml_parse_reader.get_shapes()
         self.load_labels(shapes)
         self.canvas.verified = create_ml_parse_reader.verified
+    
+    def load_pick_tsv_by_filename(self, file_name):
+        if file_name is None:
+            return
+        
+        self.set_format(FORMAT_PICK)
+        pick_tsv_parse_reader = PickReader(self.default_save_dir,file_name)
+        shapes = pick_tsv_parse_reader.get_shapes()
+        self.load_labels(shapes)
+        self.canvas.verified = False
 
     def copy_previous_bounding_boxes(self):
         current_index = self.m_img_list.index(self.file_path)
