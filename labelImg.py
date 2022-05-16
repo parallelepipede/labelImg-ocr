@@ -846,6 +846,8 @@ class MainWindow(QMainWindow, WindowMixin):
             action.setEnabled(True)
         self.update_combo_box()
 
+        return item
+
     def remove_label(self, shape):
         if shape is None:
             return
@@ -859,7 +861,7 @@ class MainWindow(QMainWindow, WindowMixin):
         s = []
         for label, transcript, points, line_color, fill_color, difficult in shapes:
             shape = Shape(label=label)
-            self.shapes_to_items.update({shape:[False,transcript]})
+            
             for x, y in points:
 
                 # Ensure the labels are within the bounds of the image. If not, fix them.
@@ -881,8 +883,10 @@ class MainWindow(QMainWindow, WindowMixin):
                 shape.fill_color = QColor(*fill_color)
             else:
                 shape.fill_color = generate_color_by_text(label)
-
-            self.add_label(shape)
+                    
+            item = self.add_label(shape)
+            self.shapes_to_items.update({shape:[item,transcript]})
+        
         self.update_combo_box()
         self.canvas.load_shapes(s)
 
