@@ -978,12 +978,13 @@ class MainWindow(QMainWindow, WindowMixin):
                     self.default_save_dir, file_name, shapes, self.pillow_image)
 
                 try:
-                    shutil.move(self.file_path, os.path.join(
-                        Path(self.dir_name).parent.absolute(), 'Base_CV_annotated'))
-                    self.m_img_list.pop(self.cur_img_idx)
-                    self.img_count -= 1
-                    self.dirty = False  # change to True to add warning before saving
-                    self.open_next_image()
+                    if self.default_save_dir != self.dir_name:
+                        shutil.move(self.file_path, os.path.join(
+                            Path(self.dir_name).parent.absolute(), 'Base_CV_annotated'))
+                        self.m_img_list.pop(self.cur_img_idx)
+                        self.img_count -= 1
+                        self.dirty = False  # change to True to add warning before saving
+                        self.open_next_image()
 
                 except shutil.Error as err:
                     print(err)

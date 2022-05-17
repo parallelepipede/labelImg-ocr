@@ -59,7 +59,6 @@ class PickWriter:
     
     # JPG image of the object
     def __save_image(self):
-        print("Image saved at ",path.join(self.images_path,self.file_name+JPG_EXT))
         self.pillow_image.save(path.join(self.images_path,self.file_name+JPG_EXT))
 
     def __create_directories(self):
