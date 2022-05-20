@@ -2,13 +2,10 @@ Experience
 Education
 Skill
 Full Name
-Interest
-Contact
-Language
+Interests
+Contacts
+Languages
 Title
 Description
-Phone Number
-Address
-Links
 SectionTitle
 Other
