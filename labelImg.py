@@ -1453,7 +1453,9 @@ class MainWindow(QMainWindow, WindowMixin):
         self.open_next_image()
 
     def verify_image(self, _value=False):
-        # Proceeding next image without dialog if having any label
+        """
+        TODO : implement verify to check image annotation according to language
+         # Proceeding next image without dialog if having any label
         if self.file_path is not None:
             try:
                 self.label_file.toggle_verify()
@@ -1468,7 +1470,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
             self.canvas.verified = self.label_file.verified
             self.paint_canvas()
-            self.save_file()
+            self.save_file() """
 
     def open_prev_image(self, _value=False):
         # Proceeding prev image without dialog if having any label
