@@ -16,27 +16,6 @@ import fitz
 import pytesseract
 from PIL import Image, ImageFilter, ImageOps
 
-from libs.canvas import Canvas
-from libs.colorDialog import ColorDialog
-from libs.combobox import ComboBox
-from libs.constants import *
-from libs.create_ml_io import JSON_EXT, CreateMLReader
-from libs.default_label_combobox import DefaultLabelComboBox
-from libs.hashableQListWidgetItem import HashableQListWidgetItem
-from libs.labelDialog import LabelDialog
-from libs.labelFile import LabelFile, LabelFileError, LabelFileFormat
-from libs.pascal_voc_io import XML_EXT, PascalVocReader
-from libs.pick_io import TSV_EXT, PickReader
-from libs.resources import *
-from libs.settings import Settings
-from libs.shape import DEFAULT_FILL_COLOR, DEFAULT_LINE_COLOR, Shape
-from libs.stringBundle import StringBundle
-from libs.toolBar import ToolBar
-from libs.ustr import ustr
-from libs.utils import *
-from libs.yolo_io import TXT_EXT, YoloReader
-from libs.zoomWidget import ZoomWidget
-
 pytesseract.pytesseract.tesseract_cmd = os.path.join(
     os.path.dirname(__file__), 'tesseract.exe')  # tesseract_path
 os.environ['TESSDATA_PREFIX'] = os.path.join(
@@ -58,6 +37,30 @@ except ImportError:
     from PyQt4.QtCore import *
     from PyQt4.QtGui import *
 
+from libs.combobox import ComboBox
+from libs.default_label_combobox import DefaultLabelComboBox
+from libs.resources import *
+from libs.constants import *
+from libs.utils import *
+from libs.settings import Settings
+from libs.shape import Shape, DEFAULT_LINE_COLOR, DEFAULT_FILL_COLOR
+from libs.stringBundle import StringBundle
+from libs.canvas import Canvas
+from libs.zoomWidget import ZoomWidget
+from libs.lightWidget import LightWidget
+from libs.labelDialog import LabelDialog
+from libs.colorDialog import ColorDialog
+from libs.labelFile import LabelFile, LabelFileError, LabelFileFormat
+from libs.toolBar import ToolBar
+from libs.pascal_voc_io import PascalVocReader
+from libs.pascal_voc_io import XML_EXT
+from libs.yolo_io import YoloReader
+from libs.yolo_io import TXT_EXT
+from libs.create_ml_io import CreateMLReader
+from libs.create_ml_io import JSON_EXT
+from libs.pick_io import TSV_EXT, PickReader
+from libs.ustr import ustr
+from libs.hashableQListWidgetItem import HashableQListWidgetItem
 
 __appname__ = 'labelImg'
 
@@ -195,12 +198,13 @@ class MainWindow(QMainWindow, WindowMixin):
         self.ocr_dock.setWidget(self.ocr_text_edit)
 
         self.zoom_widget = ZoomWidget()
+        self.light_widget = LightWidget(get_str('lightWidgetTitle'))
         self.color_dialog = ColorDialog(parent=self)
 
         self.canvas = Canvas(parent=self)
         self.canvas.zoomRequest.connect(self.zoom_request)
-        self.canvas.set_drawing_shape_to_square(
-            settings.get(SETTING_DRAW_SQUARE, False))
+        self.canvas.lightRequest.connect(self.light_request)
+        self.canvas.set_drawing_shape_to_square(settings.get(SETTING_DRAW_SQUARE, False))
 
         scroll = QScrollArea()
         scroll.setWidget(self.canvas)
@@ -351,6 +355,26 @@ class MainWindow(QMainWindow, WindowMixin):
             self.MANUAL_ZOOM: lambda: 1,
         }
 
+        light = QWidgetAction(self)
+        light.setDefaultWidget(self.light_widget)
+        self.light_widget.setWhatsThis(
+            u"Brighten or darken current image. Also accessible with"
+            " %s and %s from the canvas." % (format_shortcut("Ctrl+Shift+[-+]"),
+                                             format_shortcut("Ctrl+Shift+Wheel")))
+        self.light_widget.setEnabled(False)
+
+        light_brighten = action(get_str('lightbrighten'), partial(self.add_light, 10),
+                                'Ctrl+Shift++', 'light_lighten', get_str('lightbrightenDetail'), enabled=False)
+        light_darken = action(get_str('lightdarken'), partial(self.add_light, -10),
+                              'Ctrl+Shift+-', 'light_darken', get_str('lightdarkenDetail'), enabled=False)
+        light_org = action(get_str('lightreset'), partial(self.set_light, 50),
+                           'Ctrl+Shift+=', 'light_reset', get_str('lightresetDetail'), checkable=True, enabled=False)
+        light_org.setChecked(True)
+
+        # Group light controls into a list for easier toggling.
+        light_actions = (self.light_widget, light_brighten,
+                         light_darken, light_org)
+
         edit = action(get_str('editLabel'), self.edit_label,
                       'Ctrl+E', 'edit', get_str('editLabelDetail'),
                       enabled=False)
@@ -390,6 +414,8 @@ class MainWindow(QMainWindow, WindowMixin):
                               zoom=zoom, zoomIn=zoom_in, zoomOut=zoom_out, zoomOrg=zoom_org,
                               fitWindow=fit_window, fitWidth=fit_width,
                               zoomActions=zoom_actions,
+                              lightBrighten=light_brighten, lightDarken=light_darken, lightOrg=light_org,
+                              lightActions=light_actions,
                               fileMenuActions=(
                                   open, open_dir, save, save_as, close, reset_all, quit),
                               beginner=(), advanced=(),
@@ -440,7 +466,8 @@ class MainWindow(QMainWindow, WindowMixin):
             labels, advanced_mode, None,
             hide_all, show_all, None,
             zoom_in, zoom_out, zoom_org, None,
-            fit_window, fit_width))
+            fit_window, fit_width, None,
+            light_brighten, light_darken, light_org))
 
         self.menus.file.aboutToShow.connect(self.update_file_menu)
 
@@ -453,7 +480,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.tools = self.toolbar('Tools')
         self.actions.beginner = (
             open, open_dir, change_save_dir, open_next_image, open_prev_image, verify, save, save_format, None, create, copy, delete, None,
-            zoom_in, zoom, zoom_out, fit_window, fit_width)
+            zoom_in, zoom, zoom_out, fit_window, fit_width, None,
+            light_brighten, light, light_darken, light_org)
 
         self.actions.advanced = (
             open, open_dir, change_save_dir, open_next_image, open_prev_image, save, save_format, None,
@@ -534,6 +562,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         # Callbacks:
         self.zoom_widget.valueChanged.connect(self.paint_canvas)
+        self.light_widget.valueChanged.connect(self.paint_canvas)
 
         self.populate_mode_actions()
 
@@ -648,6 +677,8 @@ class MainWindow(QMainWindow, WindowMixin):
     def toggle_actions(self, value=True):
         """Enable/Disable widgets which depend on an opened image."""
         for z in self.actions.zoomActions:
+            z.setEnabled(value)
+        for z in self.actions.lightActions:
             z.setEnabled(value)
         for action in self.actions.onLoadActive:
             action.setEnabled(value)
@@ -1152,6 +1183,9 @@ class MainWindow(QMainWindow, WindowMixin):
         h_bar.setValue(new_h_bar_value)
         v_bar.setValue(new_v_bar_value)
 
+    def light_request(self, delta):
+        self.add_light(5*delta // (8 * 15))
+
     def set_fit_window(self, value=True):
         if value:
             self.actions.fitWidth.setChecked(False)
@@ -1163,6 +1197,15 @@ class MainWindow(QMainWindow, WindowMixin):
             self.actions.fitWindow.setChecked(False)
         self.zoom_mode = self.FIT_WIDTH if value else self.MANUAL_ZOOM
         self.adjust_scale()
+
+    def set_light(self, value):
+        self.actions.lightOrg.setChecked(int(value) == 50)
+        # Arithmetic on scaling factor often results in float
+        # Convert to int to avoid type errors
+        self.light_widget.setValue(int(value))
+
+    def add_light(self, increment=10):
+        self.set_light(self.light_widget.value() + increment)
 
     def toggle_polygons(self, value):
         for item, shape in self.items_to_shapes.items():
@@ -1301,8 +1344,8 @@ class MainWindow(QMainWindow, WindowMixin):
     def paint_canvas(self):
         assert not self.image.isNull(), "cannot paint null image"
         self.canvas.scale = 0.01 * self.zoom_widget.value()
-        self.canvas.label_font_size = int(
-            0.02 * max(self.image.width(), self.image.height()))
+        self.canvas.overlay_color = self.light_widget.color()
+        self.canvas.label_font_size = int(0.02 * max(self.image.width(), self.image.height()))
         self.canvas.adjustSize()
         self.canvas.update()
 
