@@ -4,17 +4,16 @@ LabelImg
 .. image:: https://img.shields.io/pypi/v/labelimg.svg
         :target: https://pypi.python.org/pypi/labelimg
 
-.. image:: https://img.shields.io/travis/tzutalin/labelImg.svg
-        :target: https://travis-ci.org/tzutalin/labelImg
+.. image:: https://img.shields.io/github/workflow/status/tzutalin/labelImg/Package?style=for-the-badge   :alt: GitHub Workflow Status
 
 .. image:: https://img.shields.io/badge/lang-en-blue.svg
-        :target: https://github.com/tzutalin/labelImg/blob/master/README.zh.rst
+        :target: https://github.com/tzutalin/labelImg
 
 .. image:: https://img.shields.io/badge/lang-zh-green.svg
         :target: https://github.com/tzutalin/labelImg/blob/master/readme/README.zh.rst
 
-.. image:: https://img.shields.io/badge/lang-zh--TW-green.svg
-    :target: (https://github.com/jonatasemidio/multilanguage-readme-pattern/blob/master/README.pt-br.md
+.. image:: https://img.shields.io/badge/lang-jp-green.svg
+        :target: https://github.com/tzutalin/labelImg/blob/master/readme/README.jp.rst
 
 LabelImg is a graphical image annotation tool.
 
@@ -124,7 +123,7 @@ If you want to package it into a separate EXE file
 .. code:: shell
 
     Install pyinstaller and execute:
-    
+
     pip install pyinstaller
     pyinstaller --hidden-import=pyqt5 --hidden-import=lxml -F -n "labelImg" -c labelImg.py -p ./libs -p ./
 

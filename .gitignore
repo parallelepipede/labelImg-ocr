@@ -1,5 +1,4 @@
 resources/icons/.DS_Store
-
 resources.py
 
 tesseract*
@@ -19,6 +18,8 @@ cscope*
 .subvimrc
 .vscode
 *.pkl
+Pipfile
+*.xml
 
 # MacOS System-Generated
 .DS_Store
@@ -28,3 +29,19 @@ cscope*
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# IDE
+*.DS_Store
+*.iml
+.idea
+.unison*
+.attach*
+tmp.*
