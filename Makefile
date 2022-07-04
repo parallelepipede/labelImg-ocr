@@ -1,6 +1,6 @@
 # ex: set ts=8 noet:
 
-all: qt5 test
+all: qt5
 
 test: testpy3
 
