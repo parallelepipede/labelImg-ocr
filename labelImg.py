@@ -116,6 +116,9 @@ class MainWindow(QMainWindow, WindowMixin):
         self.cur_img_idx = 0
         self.img_count = len(self.m_img_list)
 
+        # For opening annotation in the directory at image opening
+        self.open_annotation = False
+
         # Whether we need to save or not.
         self.dirty = False
 
@@ -631,6 +634,8 @@ class MainWindow(QMainWindow, WindowMixin):
         return not self.items_to_shapes
 
     def toggle_advanced_mode(self, value=True):
+        """
+        TODO : review advanced mode to prevent it to crash
         self._beginner = not value
         self.canvas.set_editing(True)
         self.populate_mode_actions()
@@ -641,7 +646,7 @@ class MainWindow(QMainWindow, WindowMixin):
             self.dock.setFeatures(self.dock.features() | self.dock_features)
         else:
             self.dock.setFeatures(self.dock.features() ^
-                                  int(self.dock_features))
+                                  int(self.dock_features)) """
 
     def populate_mode_actions(self):
         if self.beginner():
@@ -1464,10 +1469,14 @@ class MainWindow(QMainWindow, WindowMixin):
         if self.label_file_format == LabelFileFormat.PICK:
             self.load_pick_tsv_by_filename(
                 os.path.basename(self.file_path)[:-4])
+        self.open_annotation = True
 
     def open_dir_dialog(self, _value=False, dir_path=None, silent=False):
         if not self.may_continue():
             return
+
+        if self.open_annotation:
+            self.open_annotation = False
 
         default_open_dir_path = dir_path if dir_path else '.'
         if self.last_open_dir and os.path.exists(self.last_open_dir):
@@ -1539,6 +1548,8 @@ class MainWindow(QMainWindow, WindowMixin):
         filename = self.m_img_list[self.cur_img_idx]
         if filename:
             self.load_file(filename)
+        if self.open_annotation:
+            self.open_annotation_dialog()
 
     def open_next_image(self, _value=False):
         # Proceeding next image without dialog if having any label
@@ -1567,6 +1578,8 @@ class MainWindow(QMainWindow, WindowMixin):
 
         if filename:
             self.load_file(filename)
+        if self.open_annotation:
+            self.open_annotation_dialog()
 
     def open_file(self, _value=False):
         if not self.may_continue():
