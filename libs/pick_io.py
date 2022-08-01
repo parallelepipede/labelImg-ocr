@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 import codecs, csv
+import string
 from libs.constants import DEFAULT_ENCODING
 from os import mkdir, path
+from json import dumps
 
 TXT_EXT = '.txt'
 JPG_EXT = '.jpg'
@@ -11,11 +13,13 @@ ENCODE_METHOD = DEFAULT_ENCODING
 
 class PickWriter:
 
-    def __init__(self, folder_name, file_name, shapes, pillow_image):
+    def __init__(self, folder_name : string, file_name : string, shapes, pillow_image):
         # Folder where all annotations are saved
-        self.folder_name = folder_name
+        self.folder_name : string = folder_name
         # Name of the processed file without extension
-        self.file_name = file_name
+        self.file_name : string = file_name
+        # New name of the processed file without extension
+        self.new_name : string = None
         # Pillow image of the processed file
         self.pillow_image = pillow_image
         # Registered shapes for the processed file
@@ -45,21 +49,21 @@ class PickWriter:
     # Write boxes coordinates and transcripts of these boxes
     # index, box_coordinates (clockwise 8 values), transcripts, box_entity_types
     def __write_boxes_and_transcripts(self):
-        content=''
+        content=""
         for shape in self.shapes:
             content += self.__print_shape(shape)
-        self.__write(path.join(self.boxes_and_transcripts_path,self.file_name),TSV_EXT,content)
+        self.__write(path.join(self.boxes_and_transcripts_path,self.new_name),TSV_EXT,content)
     
     # JSON list of the entites ({"entity_name": 'entity_value, ...})
     def __write_entities(self):
         content = {}
         for shape in self.shapes:
             content.update({shape['label']:shape['transcript']})
-        self.__write(path.join(self.entities_path,self.file_name),TXT_EXT,str(content))
+        self.__write(path.join(self.entities_path,self.new_name),TXT_EXT,str(dumps(content)))
     
     # JPG image of the object
     def __save_image(self):
-        self.pillow_image.save(path.join(self.images_path,self.file_name+JPG_EXT))
+        self.pillow_image.save(path.join(self.images_path,self.new_name+JPG_EXT))
 
     def __create_directories(self):
         print("Creating directory ", self.boxes_and_transcripts_path)
@@ -72,7 +76,11 @@ class PickWriter:
     def __exists_directories(self):
         return path.exists(self.boxes_and_transcripts_path) and path.exists(self.entities_path) and path.exists(self.images_path)
 
+    def __compute_new_filename(self):
+        self.new_name = self.file_name.replace(".","")
+
     def save(self):
+        self.__compute_new_filename()
         if not self.__exists_directories():
             self.__create_directories()
         self.__write_boxes_and_transcripts()
